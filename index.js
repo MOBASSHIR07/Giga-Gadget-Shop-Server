@@ -1,11 +1,14 @@
-const express = require('express');
-const cors = require('cors');
+
 require('dotenv').config();
+const express = require('express');
+
+
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 const app = express();
 app.use(express.json());
-
+const cors = require('cors');
+app.use(cors());
 //
 //
 
@@ -27,8 +30,9 @@ async function run() {
   try {
 
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const productCollection = client.db("GadgetShop").collection("products");
+    const brandsCollection = client.db("GadgetShop").collection("brands");
 
 
     //for add product
@@ -38,52 +42,105 @@ async function run() {
       res.send(result)
     })
 
+    //insert brands by postman
+    app.post('/insertbrands', async (req, res) => {
+      const brands = req.body;
+      const result = await brandsCollection.insertMany(brands);
+      res.send(result);
+    })
+
+    // getbrands to display
+    app.get('/getbrands', async (req, res) => {
+
+      const result = await brandsCollection.find().toArray();
+      res.send(result);
+
+    })
+
+
+
+
+
+    //for getting data by postman
+    app.post('/insert', async (req, res) => {
+      const products = req.body;
+      const result = await productCollection.insertMany(products);
+      res.send(result);
+    });
+
+    //get all product
+    app.get('/getallproducts', async (req, res) => {
+
+      const result = await productCollection.find().toArray();
+      res.send(result);
+
+    })
+
 
     //for get products by adding person
-    app.get('/getproduct/:email', async(req,res)=>{
-             console.log(req.params);
-             const email = req.params.email;
-             const result = await productCollection.find({email:email}).toArray();
-             res.send(result);
+    app.get('/getproduct/:email', async (req, res) => {
+      console.log(req.params);
+      const email = req.params.email;
+      const result = await productCollection.find({ email: email }).toArray();
+      res.send(result);
     })
 
     //get single product by id
-    app.get('/singleproduct/:id', async(req,res)=>{
+    app.get('/singleproduct/:id', async (req, res) => {
       const id = req.params.id;
       const objectId = new ObjectId(id)
-      const result = await productCollection.findOne({_id:objectId})
+      const result = await productCollection.findOne({ _id: objectId })
       res.send(result);
     })
+
+    //get category wise products
+    app.get('/products/category/:brand', async (req, res) => {
+      const brand = req.params.brand;
+      const result = await productCollection.find({ brandName: brand }).toArray();
+      res.send(result);
+
+
+
+    })
+
+
     //update products by id
-    app.put('/updateproduct/:id', async(req,res)=>{
+    app.put('/updateproduct/:id', async (req, res) => {
       const id = req.params.id;
       const objectId = new ObjectId(id)
-      const query = {_id:objectId}
+      const query = { _id: objectId }
       const data = {
-        $set:{
-          name: req.body.name,
-          price:req.body.price,
-          brand:req.body.brand,
-          category:req.body.category
+        $set: {
+          productName: req.body.productName,
+          price: req.body.price,
+          brandName: req.body.brandName,
+          type: req.body.type,
+          rating: req.body.rating,
+          image: req.body.image,
         }
       }
-      const result = await productCollection.updateOne(query,data);
+      const result = await productCollection.updateOne(query, data);
       res.send(result);
     })
 
     //delete products
-    app.delete('/deleteproduct/:id', async(req,res)=>{
+    app.delete('/deleteproduct/:id', async (req, res) => {
       const id = req.params.id;
       const objectId = new ObjectId(id);
-      const result = await productCollection.deleteOne({_id:objectId})
+      const result = await productCollection.deleteOne({ _id: objectId })
       res.send(result);
+    })
+
+    app.delete('/deleteall', async (req, res) => {
+      const result = await productCollection.deleteMany({});
+      res.send(result)
     })
 
 
 
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
